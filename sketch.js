@@ -13,6 +13,7 @@ var energy;
 var valence;
 var analysisURL;
 
+// link to the echonest song
 var echonestURL = 'http://developer.echonest.com/api/v4/song/search?api_key='+en_api+'&format=json&results=1&artist=Kidkanevil&title=Oddisee&bucket=audio_summary';
 
 function setup() {
