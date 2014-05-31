@@ -3,6 +3,7 @@ var p5s;
 var soundFile;
 var amplitude;
 var volume = 0;
+var low, mid, high; //frequency ranges (between 100, 200)
 
 // FFT
 var analyser;
@@ -26,6 +27,7 @@ var analysisURL;
 // link to the echonest song. en_api should be your Echo Nest API key
 var echonestURL = 'http://developer.echonest.com/api/v4/song/search?api_key='+en_api+'&format=json&results=1&artist=raffi&title=bananaphone&bucket=audio_summary';
 
+var i;
 
 function setup() {
 
@@ -33,21 +35,49 @@ function setup() {
   createCanvas(400,400);
   background(0);
 
+  // set up sound and analyser
   soundSetup();
   setupFreq();
+
+  colorMode(HSB);
+
 }
 
 function draw() {
-  background(255, 10, 0, 10);
-  colorMode(HSB);
+  background(255, 10, 0, 200);
+  i = 0.5;
+
   noStroke();
   // get volume from the amplitude process
   volume = amplitude.process();
   fill(volume*50, 1, 1);
-  ellipse(width/2, volume*10000, volume*5000, volume*5000);
+//  ellipse(width/2, volume*10000, volume*5000, volume*5000);
+
+  // instantiate freq and time domain analysis
   getYrFreqOn();
 
-  drawFreqs();
+//  drawWaveform();
+
+  // console.log(getFrequencyValue(50));
+  low = map(getFreqRange(45,90)/400, 0.4, 1.0, 0.0, 1.0);
+  midLo = map(getFreqRange(250,300)/300, 0.4, 1.0, 0.0, 1.0);
+  midHi = map(getFreqRange(1450,1550)/220, 0.4, 1.0, 0.0, 1.0);
+  high = map(getFreqRange(7800,8250)/180, 0.4, 1.0, 0.0, 1.0);
+
+  console.log('low: ' + low +', midLo: ' + midLo +', midHi: ' + midHi + ', high: ' + high + ', volume: ' + volume);
+  fill(low,1,1);
+  rect(0,0,50,low*height);
+
+  fill(midLo,1,1);
+  rect(width/2-75,0,50,midLo*height);
+
+  fill(midHi,1,1);
+  rect(width/2+75,0,50,midHi*height);
+
+  fill(high,1,1);
+  rect(width-50,0,50,high*height);
+
+
 }
 
 function soundSetup() {
@@ -97,7 +127,7 @@ var keyPressed = function(e){
 // FREQUENCY DATA
 
 function setupFreq() {
-  var SMOOTHING = 0.8;
+  var SMOOTHING = .7;
   var FFT_SIZE = 2048;
   analyser = p5s.audiocontext.createAnalyser();
   p5s.output.connect(analyser);
@@ -118,14 +148,35 @@ function getYrFreqOn() {
   analyser.getByteTimeDomainData(timeDomain);
 }
 
-function drawFreqs() {
+function drawWaveform() {
+  fill(.9,97,92);
   for (var i = 0; i < analyser.frequencyBinCount; i++) {
     var value = timeDomain[i];
     var percent = value / 256;
     var h = height * percent;
     var offset = height - h - 1;
     var barWidth = width/analyser.frequencyBinCount;
-    fill(250);
-    rect(i * barWidth, offset, 1, 2);
+    rect(i * barWidth, offset, barWidth, 200);
   }
+}
+
+function getFrequencyValue(frequency) {
+  var nyquist = p5s.audiocontext.sampleRate/2;
+  var index = Math.round(frequency/nyquist * freqDomain.length);
+  return freqDomain[index];
+}
+
+function getFreqRange(lowFreq, highFreq) {
+  var nyquist = p5s.audiocontext.sampleRate/2;
+  var lowIndex = Math.round(lowFreq/nyquist * freqDomain.length);
+  var highIndex = Math.round(highFreq/nyquist * freqDomain.length);
+
+  var total = 0;
+  // add up all of the values for the frequencies
+  for (var i = lowIndex; i<=highIndex; i++) {
+    total += freqDomain[i];
+  }
+  var toReturn = total/(highIndex-lowIndex);
+  // map(toReturn, 100, )
+  return toReturn;
 }

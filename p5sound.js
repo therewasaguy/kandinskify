@@ -637,6 +637,7 @@ Amplitude.prototype.volumeAudioProcess = function(event) {
  * @for Amplitude
  */
 Amplitude.prototype.process = function() {
+  // TO DO --> add more to volume
   return this.volume;
 }
 
