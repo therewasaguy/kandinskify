@@ -537,10 +537,10 @@ var Amplitude = function(w) {
 
 
   // Set to 512 for now. In future iterations, this should be inherited or parsed from p5sound's default
-  this.bufferSize = 512;
+  this.bufferSize = 2048;
 
   //smoothing (defaults to .8)
-  this.smoothing = .8;
+  this.smoothing = .99;
 
   console.log('smoothing: ' + this.smoothing);
   // this may only be necessary because of a Chrome bug
