@@ -29,10 +29,13 @@ function setup() {
 }
 
 function draw() {
-  background(0);
+  background(255, 10, 100, 10);
+  colorMode(HSB);
+  noStroke();
   // get volume from the amplitude process
-  volume = amplitude.process(.8);
-  ellipse(width/2, height/2, volume*3000, volume*3000);
+  volume = amplitude.process();
+  fill(volume*50, 1, 1);
+  ellipse(width/2, volume*10000, volume*5000, volume*5000);
 }
 
 function soundSetup() {
@@ -47,7 +50,7 @@ function soundSetup() {
   soundFile = new SoundFile(this, 'Kidkanevil_-_11_-_Zo0o0o0p_feat_Oddisee.mp3');
 
   // create a new Amplitude, give it a reference to this.
-  amplitude = new Amplitude(this);
+  amplitude = new Amplitude(this, .97);
 
   // tell the amplitude to listen to the sketch's output.
   amplitude.input();

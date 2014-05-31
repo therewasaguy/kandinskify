@@ -526,7 +526,7 @@ SoundFile.prototype.fade = function() {
   * @class Amplitude
   * @param {Object} [w]          a reference to the document.window (usually 'this', i.e. new Amplitude(this); ) 
   */
-var Amplitude = function(w) {
+var Amplitude = function(w, smoothing) {
 
   // store a reference to the window's p5sound instance
   this.p5s = w.p5sound;
@@ -541,6 +541,10 @@ var Amplitude = function(w) {
 
   //smoothing (defaults to .8)
   this.smoothing = .99;
+
+  if (smoothing) {
+    this.smoothing = smoothing;
+  }
 
   console.log('smoothing: ' + this.smoothing);
   // this may only be necessary because of a Chrome bug
