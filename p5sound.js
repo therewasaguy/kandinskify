@@ -396,6 +396,9 @@ SoundFile.prototype.toggleLoop = function() {
  * @for SoundFile
  */
 SoundFile.prototype.isLooping = function() {
+  if (!this.source) {
+    return false;
+  }
   return this.source.loop;
 }
 
