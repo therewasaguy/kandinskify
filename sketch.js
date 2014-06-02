@@ -3,12 +3,14 @@ var p5s = new P5sound(this);
 var soundFile;
 var amplitude; //
 var volume = 0;
-var analyser;
-var freqDomain;
-var timeDomain;
+
+var analyser; // Frequency Analyser object
+var freqDomain, timeDomain; // two arrays of frequency data
+var low, midLo, midHi, high; // four values of frequency ranges that we'll map to shape parameters
+
+
 var increment = 0;
 var ang;//an angle to spiral the graphics
-var low, midLo, midHi, high;
 var radius = 1;
 var angle = 0;
 var speed = 2;
@@ -18,6 +20,7 @@ var ii = 0;
 var size= 1;
 /**
  *  Echo Nest variables about the song (predetermined)
+ *  Note: none of these values are mapped...yet!
  */
 var acousticness;
 var danceability;
@@ -41,81 +44,90 @@ var michelles = [];
 
 
 function setup() {
-
-
-size = map(volume,0,1,20,50);
   // create the canvas
-        createCanvas(windowWidth, windowHeight);
-        background(249,243,207);
-        soundSetup();
- // set up sound and analyser
+  createCanvas(windowWidth, windowHeight);
+  background(249,243,207);
+  rectMode(CENTER);
+  ellipseMode(CENTER);
+
+  // set up sound and frequency analyser
   soundSetup();
   setupFreq();
-
-  rectMode(CENTER);
 }
 
 function draw() {
-  colorMode(RGB);
 
+  //update & draw the shapes. Only update if soundfile is playing
   if (soundFile.isLooping() == true) {
-  background(249,243,207);
-  colorMode(HSB);
-  noStroke();
-  // get volume from the amplitude process
-  volume = amplitude.process();
-  
-  //ellipse(width/2, volume*10000, volume*5000, volume*5000)
+    colorMode(RGB);
+    background(249,243,207);
+    colorMode(HSB);
+    noStroke();
 
+    // get volume from the amplitude process
+    volume = amplitude.process();
 
-  for (var i = 0; i < concs.length; i++) {
-    concs[i].update();
-  }
-  // draw all of the shapes
-  for (var i = 0; i < circles.length; i++) {
-    circles[i].size = low*100;
-    circles[i].update();
+    // update the size variable
+    size = map(volume,0,1,20,50);
+
+    for (var i = 0; i < concs.length; i++) {
+      concs[i].update();
+    }
+    // draw all of the shapes
+    for (var i = 0; i < circles.length; i++) {
+      circles[i].size = low*100;
+      circles[i].update();
+    }
+
+    for (var i = 0; i < rectangles.length; i++) {
+      rectangles[i].variable = midLo;
+      rectangles[i].update();
+    }
+
+    for (var i = 0; i < squiggles.length; i++) {
+      squiggles[i].update();
+    }
+
+    for (var i = 0; i < michelles.length; i++) { 
+      michelles[i].update();
+    }
   }
 
-  for (var i = 0; i < rectangles.length; i++) {
-    rectangles[i].variable = midLo;
-    rectangles[i].update();
-  }
-
-  for (var i = 0; i < squiggles.length; i++) {
-    squiggles[i].update();
-  }
-
-  for (var i = 0; i < michelles.length; i++) { 
-    michelles[i].update();
-  }
-  }
-//drawspiral
-var deltaAngle = speed/radius;
+  // calculate angles / spiral position that will be used to draw shapes that spiral out from center.
+  var deltaAngle = speed/radius;
   angle += deltaAngle;
   radius += 60/TWO_PI*deltaAngle;
-  ellipseMode(CENTER);
-  
+
+  // draw a shape every 20x thru the draw loop.
+  // TO DO: make shapes appear on the beat using echo nest data!
   increment++;
   if (increment%20==0)
     shape(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7)
-  
-  // ellipse(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7);
 
-
-  // do the frequency analysis
+  // do the frequency analysis to update two arrays of frequency data: freqDomain and timeDomain
   getYrFreqOn();
 
-  // update the 4 frequency variables
-  low = map(getFreqRange(45,90)/400, 0.4, 1.0, 0.0, 1.0);
+  // update the 4 frequency variables that we use to make the shapes change size
+  low = getFreqRange(45,96); // get average value of "low" frequencies (i.e. between 45hz and 96hz)
+  low = map(low/400, 0.4, 1.0, 0.0, 1.0); // scale the value of the low frequencies
   midLo = map(getFreqRange(250,300)/300, 0.4, 1.0, 0.0, 1.0);
   midHi = map(getFreqRange(1450,1550)/220, 0.4, 1.0, 0.0, 1.0);
   high = map(getFreqRange(7800,8250)/180, 0.4, 1.0, 0.0, 1.0);
 
 }
 
-////graphic shapes
+// respond to key presses by starting / stopping the song
+var keyPressed = function(e){
+  // if it's the spacebar, start/stop the song
+  if (e.keyCode == 32) {
+    console.log('spacebar!');
+    soundFile.toggleLoop();
+  }
+}
 
+///////////////// SHAPES //////////////////////////
+
+// function to draw a shape.
 function shape(x,y){
 
   //probability
@@ -137,7 +149,7 @@ function shape(x,y){
     michelles.push( new Michelle(x, y) );
    }
     else if(shapetype < .47 && shapetype > .4){
-      concs.push(new ConcentricCirc(x,y,size));
+      concs.push(new ConcentricCirc(x,y,size/1.5));
     }
     else if(shapetype > .47 && shapetype <.6) {
       var c = [volume*50, 0.76, 0.82];
@@ -145,9 +157,7 @@ function shape(x,y){
     }
 }
 
-//// SHAPES
-
-
+// Shape objects
 function anEllipse(_color,_x,_y,_size) {
   console.log('anellipse was made!');
   this.c = _color;
@@ -205,7 +215,6 @@ Squiggle.prototype.update = function() {
   fill(this.c);
   noStroke;
 
-
   for (j = 0; j<10; j++) {
     // pushStyle();
     // rotate(PI/4);
@@ -246,6 +255,10 @@ Michelle.prototype.update = function() {
 
 }
 
+
+///////////////// SOUND //////////////////////////
+
+// Sound Setup function called by setup()
 function soundSetup() {
 
   // load the Echo Nest data as a string, then assignValues as the callback
@@ -253,6 +266,9 @@ function soundSetup() {
 
   // instantiate the soundFile
   soundFile = new SoundFile(this, 'Kidkanevil_-_11_-_Zo0o0o0p_feat_Oddisee.mp3');
+
+  // start playing
+  soundFile.toggleLoop();
 
   // create a new Amplitude, give it a reference to this.
   amplitude = new Amplitude(this, .97);
@@ -276,17 +292,7 @@ var assignValues = function(results) {
 }
 
 
-// respond to key presses
-var keyPressed = function(e){
-  // if it's the spacebar, play the song
-  if (e.keyCode == 32) {
-    console.log('spacebar!');
-  }
-  soundFile.toggleLoop();
-}
-
 // FREQUENCY DATA
-
 function setupFreq() {
   var SMOOTHING = .7;
   var FFT_SIZE = 2048;
@@ -303,12 +309,15 @@ function setupFreq() {
   analyser.fftSize = FFT_SIZE;
 }
 
+/**
+ * Update our frequency data. Called by the draw loop. 
+ */
 function getYrFreqOn() {
-  // Get the frequency data from the currently playing music
   analyser.getByteFrequencyData(freqDomain);
   analyser.getByteTimeDomainData(timeDomain);
 }
 
+// draws the wave of time domain data
 function drawWaveform() {
   fill(.9,97,92);
   for (var i = 0; i < analyser.frequencyBinCount; i++) {
@@ -321,23 +330,27 @@ function drawWaveform() {
   }
 }
 
+// get value of a specific frequency
 function getFrequencyValue(frequency) {
   var nyquist = p5s.audiocontext.sampleRate/2;
   var index = Math.round(frequency/nyquist * freqDomain.length);
   return freqDomain[index];
 }
 
+// get value of a range of frequencies
 function getFreqRange(lowFreq, highFreq) {
   var nyquist = p5s.audiocontext.sampleRate/2;
   var lowIndex = Math.round(lowFreq/nyquist * freqDomain.length);
   var highIndex = Math.round(highFreq/nyquist * freqDomain.length);
 
   var total = 0;
+  var numFrequencies = 0;
   // add up all of the values for the frequencies
   for (var i = lowIndex; i<=highIndex; i++) {
     total += freqDomain[i];
+    numFrequencies += 1;
   }
-  var toReturn = total/(highIndex-lowIndex);
-  // map(toReturn, 100, )
+  // divide by total number of frequencies
+  var toReturn = total/numFrequencies;
   return toReturn;
 }

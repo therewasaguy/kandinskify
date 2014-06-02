@@ -402,6 +402,15 @@ SoundFile.prototype.isLooping = function() {
   return this.source.loop;
 }
 
+// TO DO
+SoundFile.prototype.isPlaying = function() {
+  if (!this.source) {
+    return false;
+  }
+  // TO DO
+  // return this.source
+}
+
 /**
  * Stop soundfile playback.
  *
@@ -412,6 +421,15 @@ SoundFile.prototype.stop = function() {
   if (this.buffer && this.source) {
     this.source.stop();
   }
+}
+
+
+/**
+ * Pause a file that is currently playing.
+ * Save the start time & loop status (true/false) so that we can continue playback from the same spot
+ */
+SoundFile.prototype.pause = function() {
+  // TO DO
 }
 
 /**
