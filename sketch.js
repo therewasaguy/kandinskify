@@ -33,7 +33,10 @@ var valence;
 var analysisURL;
 
 var echonestURL = 'http://developer.echonest.com/api/v4/song/search?api_key='+en_api+'&format=json&results=1&artist=Kidkanevil&title=Oddisee&bucket=audio_summary';
-var beats;
+var echonestAnalysis;
+var bars = [];
+var beats = [];
+var tatums = [];
 
 // different shape arrays
 var circles = [];
@@ -53,10 +56,15 @@ function setup() {
   // set up sound and frequency analyser
   soundSetup();
   setupFreq();
+
+  // update the size variable
+  size = 100;
+
+  // start us off with a shape.
+  shape(width/2, height/2);
 }
 
 function draw() {
-  text('current time');
 
   //update & draw the shapes. Only update if soundfile is playing
   if (soundFile.isPlaying()) {
@@ -76,7 +84,7 @@ function draw() {
     }
     // draw all of the shapes
     for (var i = 0; i < circles.length; i++) {
-      circles[i].size = low*100;
+      circles[i].size = low/2*100;
       circles[i].update();
     }
 
@@ -100,10 +108,20 @@ function draw() {
   radius += 60/TWO_PI*deltaAngle;
 
   // draw a shape every 20x thru the draw loop.
+  // increment++;
+  // if (increment%20==0)
+  //   shape(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7)
+
   // TO DO: make shapes appear on the beat using echo nest data!
-  increment++;
-  if (increment%20==0)
-    shape(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7)
+
+
+  if (soundFile.currentTime().toFixed(1) == beats[increment].start.toFixed(1)) {
+    shape(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7);
+    increment++;
+    if (increment > beats.length) {
+      incremement = 0;
+    }
+  }
 
   // do the frequency analysis to update two arrays of frequency data: freqDomain and timeDomain
   getYrFreqOn();
@@ -133,6 +151,7 @@ function shape(x,y){
 
   //probability
   shapetype = random(1);
+  // shapetype = volume*14;
 
   if (shapetype < .2&& shapetype >.1)
     {
@@ -144,7 +163,7 @@ function shape(x,y){
     {
     var c = [volume*50, 0.76, 0.82];
     // fill(#1B3DA1);
-    circles.push(new anEllipse(c, x,y,size));
+    circles.push(new anEllipse(c, x,y,size/2));
     }
   else if(shapetype < .4 && shapetype >.3){
     michelles.push( new Michelle(x, y) );
@@ -269,6 +288,7 @@ function soundSetup() {
 
   // start playing
   soundFile.loop();
+  soundFile.rate(.3);
 
   // create a new Amplitude, give it a reference to this.
   amplitude = new Amplitude(.97);
@@ -278,12 +298,16 @@ function soundSetup() {
 }
 
 
-function parseBeats(songJSON) {
+function parseAnalysis(songJSON) {
 //  console.log(songJSON);
-    beats = songJSON;
+    echonestAnalysis = songJSON;
 //  beats = JSON.parse(songJSON[1].toString());
 //  var beats = JSON.parse(songJSON[0]);
-    console.log(beats);
+    console.log(echonestAnalysis);
+    bars = echonestAnalysis.bars;
+    beats = echonestAnalysis.beats;
+    tatums = echonestAnalysis.tatums;
+
 }
 
 
@@ -300,7 +324,7 @@ var assignValues = function(results) {
   key = echonestJSON.key;
   mode = echonestJSON.mode;
   analysisURL = echonestJSON.analysis_url;
-  loadJSON2(analysisURL, parseBeats); // parse the beats from the song
+  loadJSON2(analysisURL, parseAnalysis); // parse the beats from the song
 }
 
 // FREQUENCY DATA

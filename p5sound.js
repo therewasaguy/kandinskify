@@ -531,11 +531,11 @@ SoundFile.prototype.fade = function() {
 SoundFile.prototype.currentTime = function() {
   // TO DO --> make this work with paused audio
   if (this.isPlaying()) {
-    var howLong = this.p5s.audiocontext.currentTime - this.startSeconds + this.startTime;
+    var howLong = ( (this.p5s.audiocontext.currentTime - this.startSeconds + this.startTime) * this.playbackRate ) % this.duration();
     return howLong;
   }
   else {
-    return 0;
+    return this.startTime;
   }
 
 }
