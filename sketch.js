@@ -1,5 +1,5 @@
 // p5sound variables
-var p5s = new P5sound(this);
+var p5s = new p5Sound(this);
 var soundFile;
 var amplitude; //
 var volume = 0;
@@ -33,7 +33,7 @@ var valence;
 var analysisURL;
 
 var echonestURL = 'http://developer.echonest.com/api/v4/song/search?api_key='+en_api+'&format=json&results=1&artist=Kidkanevil&title=Oddisee&bucket=audio_summary';
-
+var beats;
 
 // different shape arrays
 var circles = [];
@@ -56,9 +56,10 @@ function setup() {
 }
 
 function draw() {
+  text('current time');
 
   //update & draw the shapes. Only update if soundfile is playing
-  if (soundFile.isLooping() == true) {
+  if (soundFile.isPlaying()) {
     colorMode(RGB);
     background(249,243,207);
     colorMode(HSB);
@@ -121,7 +122,7 @@ var keyPressed = function(e){
   // if it's the spacebar, start/stop the song
   if (e.keyCode == 32) {
     console.log('spacebar!');
-    soundFile.toggleLoop();
+    soundFile.pause();
   }
 }
 
@@ -159,7 +160,6 @@ function shape(x,y){
 
 // Shape objects
 function anEllipse(_color,_x,_y,_size) {
-  console.log('anellipse was made!');
   this.c = _color;
   this.x = _x;
   this.y = _y;
@@ -265,17 +265,28 @@ function soundSetup() {
   var echonestStrings = loadStrings(echonestURL, assignValues);
 
   // instantiate the soundFile
-  soundFile = new SoundFile(this, 'Kidkanevil_-_11_-_Zo0o0o0p_feat_Oddisee.mp3');
+  soundFile = new SoundFile('Kidkanevil_-_11_-_Zo0o0o0p_feat_Oddisee.mp3');
 
   // start playing
-  soundFile.toggleLoop();
+  soundFile.loop();
 
   // create a new Amplitude, give it a reference to this.
-  amplitude = new Amplitude(this, .97);
+  amplitude = new Amplitude(.97);
 
   // tell the amplitude to listen to the sketch's output.
   amplitude.input();
 }
+
+
+function parseBeats(songJSON) {
+//  console.log(songJSON);
+    beats = songJSON;
+//  beats = JSON.parse(songJSON[1].toString());
+//  var beats = JSON.parse(songJSON[0]);
+    console.log(beats);
+}
+
+
 
 // parse the echo nest data from string to individual variables...
 var assignValues = function(results) {
@@ -289,8 +300,8 @@ var assignValues = function(results) {
   key = echonestJSON.key;
   mode = echonestJSON.mode;
   analysisURL = echonestJSON.analysis_url;
+  loadJSON2(analysisURL, parseBeats); // parse the beats from the song
 }
-
 
 // FREQUENCY DATA
 function setupFreq() {

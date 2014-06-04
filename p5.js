@@ -2249,20 +2249,51 @@ var inputfiles = function (require, core, reqwest) {
             });
             return ret;
         };
+        p5.prototype.loadJSON2 = function (path, callback) {
+            var ret = [];
+            var req = new XMLHttpRequest();
+            req.open('GET', path, true);
+            req.onreadystatechange = function () {
+                if (req.readyState === 4 && (req.status === 200 || req.status === 0)) {
+                    // var arr = req.responseText.match(/[^\r\n]+/g);
+                    // console.log("arr! " + arr);
+                    // var kk = 0;
+                    // for (var k in arr) {
+                    //     ret[k] = arr[k];
+                    //     kk = k;
+                    // }
+                    // if (kk == arr.length -1) {
+                    //     console.log('kk = ' + kk);
+                    ret = req.responseText;
+                    if (typeof callback !== 'undefined') {
+                        callback(JSON.parse(ret));
+                        }
+                    }
+            };
+            req.send(null);
+            return ret;
+        };
+
         p5.prototype.loadStrings = function (path, callback) {
             var ret = [];
             var req = new XMLHttpRequest();
             req.open('GET', path, true);
             req.onreadystatechange = function () {
                 if (req.readyState === 4 && (req.status === 200 || req.status === 0)) {
-                    var arr = req.responseText.match(/[^\r\n]+/g);
-                    for (var k in arr) {
-                        ret[k] = arr[k];
-                    }
+                    // var arr = req.responseText.match(/[^\r\n]+/g);
+                    // console.log("arr! " + arr);
+                    // var kk = 0;
+                    // for (var k in arr) {
+                    //     ret[k] = arr[k];
+                    //     kk = k;
+                    // }
+                    // if (kk == arr.length -1) {
+                    //     console.log('kk = ' + kk);
+                    ret = req.responseText;
                     if (typeof callback !== 'undefined') {
                         callback(ret);
+                        }
                     }
-                }
             };
             req.send(null);
             return ret;
