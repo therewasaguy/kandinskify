@@ -1,8 +1,9 @@
 // p5sound variables
-var p5s = new p5Sound(this);
 var soundFile;
-var amplitude; //
+var amplitude;
+var fft;
 var volume = 0;
+var audiocontext;
 
 var analyser; // Frequency Analyser object
 var freqDomain, timeDomain; // two arrays of frequency data
@@ -46,16 +47,39 @@ var squiggles = [];
 var michelles = [];
 
 
+// this is working better than loadJSON, will look into it!
+loadJSON2 = function (path, callback) {
+  var ret = [];
+  var req = new XMLHttpRequest();
+  req.open('GET', path, true);
+  req.onreadystatechange = function () {
+      if (req.readyState === 4 && (req.status === 200 || req.status === 0)) {
+          ret = req.responseText;
+          if (typeof callback !== 'undefined') {
+              callback(JSON.parse(ret));
+              }
+          }
+  };
+  req.send(null);
+  console.log(ret);
+  return ret;
+};
+
+function preload() {
+  soundFile = loadSound('Kidkanevil_-_11_-_Zo0o0o0p_feat_Oddisee.mp3');
+}
+
 function setup() {
+  // load the Echo Nest data as a string, then assignValues as the callback
+  loadStrings(echonestURL, assignValues);
+
+  soundSetup();
+
   // create the canvas
   createCanvas(windowWidth, windowHeight);
   background(249,243,207);
   rectMode(CENTER);
   ellipseMode(CENTER);
-
-  // set up sound and frequency analyser
-  soundSetup();
-  setupFreq();
 
   // update the size variable
   size = 100;
@@ -70,36 +94,16 @@ function draw() {
   if (soundFile.isPlaying()) {
     colorMode(RGB);
     background(249,243,207);
-    colorMode(HSB);
+    colorMode(HSB, 100);
     noStroke();
 
     // get volume from the amplitude process
-    volume = amplitude.process();
+    volume = amplitude.getLevel();
 
     // update the size variable
-    size = map(volume,0,1,20,50);
+    size = map(volume,0,1,5,20);
 
-    for (var i = 0; i < concs.length; i++) {
-      concs[i].update();
-    }
-    // draw all of the shapes
-    for (var i = 0; i < circles.length; i++) {
-      circles[i].size = low/2*100;
-      circles[i].update();
-    }
-
-    for (var i = 0; i < rectangles.length; i++) {
-      rectangles[i].variable = midLo;
-      rectangles[i].update();
-    }
-
-    for (var i = 0; i < squiggles.length; i++) {
-      squiggles[i].update();
-    }
-
-    for (var i = 0; i < michelles.length; i++) { 
-      michelles[i].update();
-    }
+    updateAllShapes();
   }
 
   // calculate angles / spiral position that will be used to draw shapes that spiral out from center.
@@ -115,23 +119,27 @@ function draw() {
   // TO DO: make shapes appear on the beat using echo nest data!
 
 
-  if (soundFile.currentTime().toFixed(1) == beats[increment].start.toFixed(1)) {
-    shape(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7);
-    increment++;
-    if (increment > beats.length) {
-      incremement = 0;
+  if (tatums.length > 1) {
+    console.log(tatums);
+    if (soundFile.currentTime().toFixed(1) == tatums[increment].start.toFixed(1)) {
+      shape(width/2+radius*cos(angle),height/2+radius*sin(angle),7,7);
+      increment++;
+      if (increment >= tatums.length) {
+        incremement = 0;
+      }
     }
   }
 
   // do the frequency analysis to update two arrays of frequency data: freqDomain and timeDomain
-  getYrFreqOn();
+  freqDomain = fft.processFreq();
+  timeDomain = fft.waveform();
 
   // update the 4 frequency variables that we use to make the shapes change size
-  low = getFreqRange(45,96); // get average value of "low" frequencies (i.e. between 45hz and 96hz)
+  low = fft.getFreq(45,96); // get average value of "low" frequencies (i.e. between 45hz and 96hz)
   low = map(low/400, 0.4, 1.0, 0.0, 1.0); // scale the value of the low frequencies
-  midLo = map(getFreqRange(250,300)/300, 0.4, 1.0, 0.0, 1.0);
-  midHi = map(getFreqRange(1450,1550)/220, 0.4, 1.0, 0.0, 1.0);
-  high = map(getFreqRange(7800,8250)/180, 0.4, 1.0, 0.0, 1.0);
+  midLo = map(fft.getFreq(250,300)/300, 0.4, 1.0, 0.0, 1.0);
+  midHi = map(fft.getFreq(1450,1550)/220, 0.4, 1.0, 0.0, 1.0);
+  high = map(fft.getFreq(7800,8250)/180, 0.4, 1.0, 0.0, 1.0);
 
 }
 
@@ -146,22 +154,48 @@ var keyPressed = function(e){
 
 ///////////////// SHAPES //////////////////////////
 
+// called by draw loop
+function updateAllShapes() {
+  for (var i = 0; i < concs.length; i++) {
+    concs[i].update();
+  }
+  // draw all of the shapes
+  for (var i = 0; i < circles.length; i++) {
+    circles[i].size = low/2*100;
+    circles[i].update();
+  }
+
+  for (var i = 0; i < rectangles.length; i++) {
+    rectangles[i].variable = midLo;
+    rectangles[i].update();
+  }
+
+  for (var i = 0; i < squiggles.length; i++) {
+    squiggles[i].update();
+  }
+
+  for (var i = 0; i < michelles.length; i++) { 
+    michelles[i].update();
+  }
+}
+
 // function to draw a shape.
 function shape(x,y){
-
+  var sat = 100; // 76
+  var bri = 100; // 82
   //probability
   shapetype = random(1);
   // shapetype = volume*14;
 
   if (shapetype < .2&& shapetype >.1)
     {
-    var c = [volume*50, .83, volume*50];
+    var c = [volume*50, sat, bri];
     rectangles.push(new aRectangle(c,x,y));
     rect(x,y,50,50)
     }
   else if(shapetype < .3 && shapetype >.2)
     {
-    var c = [volume*50, 0.76, 0.82];
+    var c = [volume*50, sat, bri];
     // fill(#1B3DA1);
     circles.push(new anEllipse(c, x,y,size/2));
     }
@@ -172,7 +206,7 @@ function shape(x,y){
       concs.push(new ConcentricCirc(x,y,size/1.5));
     }
     else if(shapetype > .47 && shapetype <.6) {
-      var c = [volume*50, 0.76, 0.82];
+      var c = [volume*50, sat, bri];
       squiggles.push(new Squiggle(c, x, y));
     }
 }
@@ -254,63 +288,48 @@ function Michelle(_x, _y) {
 }
 
 Michelle.prototype.update = function() {
-    // pushStyle()
-    // translate(this.x,this.y);
-    // rotate(PI/100);
-    stroke(0,0,0);
-    strokeWeight(.2+100*volume);
-    beginShape();
-    vertex(this.x, this.y);
-    vertex(this.x+5*this.scaler, this.y+5*this.scaler);
-    vertex(this.x+10*this.scaler, this.y+10*this.scaler);
-    vertex(this.x+15*this.scaler, this.y+5*this.scaler);
-    vertex(this.x+20*this.scaler, this.y+10*this.scaler);
-    vertex(this.x+25*this.scaler, this.y+5*this.scaler);
-    vertex(this.x+30*this.scaler, this.y+10*this.scaler);
-    vertex(this.x+5*this.scaler, this.y+5*this.scaler);
-    endShape();
-    noStroke();
-    // popStyle();
-
+  push()
+  translate(this.x,this.y);
+  rotate(PI/100);
+  stroke(0,0,0);
+  strokeWeight(.2+10*volume);
+  beginShape();
+  vertex(this.x, this.y);
+  vertex(this.x+5*this.scaler, this.y+5*this.scaler);
+  vertex(this.x+10*this.scaler, this.y+10*this.scaler);
+  vertex(this.x+15*this.scaler, this.y+5*this.scaler);
+  vertex(this.x+20*this.scaler, this.y+10*this.scaler);
+  vertex(this.x+25*this.scaler, this.y+5*this.scaler);
+  vertex(this.x+30*this.scaler, this.y+10*this.scaler);
+  vertex(this.x+5*this.scaler, this.y+5*this.scaler);
+  endShape();
+  noStroke();
+  pop();
 }
 
 
 ///////////////// SOUND //////////////////////////
 
-// Sound Setup function called by setup()
+
+// function called by setup()
 function soundSetup() {
-
-  // load the Echo Nest data as a string, then assignValues as the callback
-  var echonestStrings = loadStrings(echonestURL, assignValues);
-
-  // instantiate the soundFile
-  soundFile = new SoundFile('Kidkanevil_-_11_-_Zo0o0o0p_feat_Oddisee.mp3');
+  audiocontext = getAudioContext();
 
   // start playing
-  soundFile.loop();
-  soundFile.rate(.3);
+  soundFile.play();
+  soundFile.rate(1);
 
-  // create a new Amplitude, give it a reference to this.
   amplitude = new Amplitude(.97);
-
-  // tell the amplitude to listen to the sketch's output.
-  amplitude.input();
+  fft = new FFT();
 }
-
 
 function parseAnalysis(songJSON) {
-//  console.log(songJSON);
-    echonestAnalysis = songJSON;
-//  beats = JSON.parse(songJSON[1].toString());
-//  var beats = JSON.parse(songJSON[0]);
-    console.log(echonestAnalysis);
-    bars = echonestAnalysis.bars;
-    beats = echonestAnalysis.beats;
-    tatums = echonestAnalysis.tatums;
-
+  echonestAnalysis = songJSON;
+  console.log(echonestAnalysis);
+  bars = echonestAnalysis.bars;
+  beats = echonestAnalysis.beats;
+  tatums = echonestAnalysis.tatums;
 }
-
-
 
 // parse the echo nest data from string to individual variables...
 var assignValues = function(results) {
@@ -325,67 +344,4 @@ var assignValues = function(results) {
   mode = echonestJSON.mode;
   analysisURL = echonestJSON.analysis_url;
   loadJSON2(analysisURL, parseAnalysis); // parse the beats from the song
-}
-
-// FREQUENCY DATA
-function setupFreq() {
-  var SMOOTHING = .7;
-  var FFT_SIZE = 2048;
-  analyser = p5s.audiocontext.createAnalyser();
-  p5s.output.connect(analyser);
-  analyser.connect(p5s.audiocontext.destination);
-  analyser.minDecibels = -140;
-  analyser.maxDecibels = 0;
-
-  freqDomain = new Uint8Array(analyser.frequencyBinCount);
-  timeDomain = new Uint8Array(analyser.frequencyBinCount);
-
-  analyser.smoothingTimeConstant = SMOOTHING;
-  analyser.fftSize = FFT_SIZE;
-}
-
-/**
- * Update our frequency data. Called by the draw loop. 
- */
-function getYrFreqOn() {
-  analyser.getByteFrequencyData(freqDomain);
-  analyser.getByteTimeDomainData(timeDomain);
-}
-
-// draws the wave of time domain data
-function drawWaveform() {
-  fill(.9,97,92);
-  for (var i = 0; i < analyser.frequencyBinCount; i++) {
-    var value = timeDomain[i];
-    var percent = value / 256;
-    var h = height * percent;
-    var offset = height - h - 1;
-    var barWidth = width/analyser.frequencyBinCount;
-    rect(i * barWidth, offset, barWidth, 200);
-  }
-}
-
-// get value of a specific frequency
-function getFrequencyValue(frequency) {
-  var nyquist = p5s.audiocontext.sampleRate/2;
-  var index = Math.round(frequency/nyquist * freqDomain.length);
-  return freqDomain[index];
-}
-
-// get value of a range of frequencies
-function getFreqRange(lowFreq, highFreq) {
-  var nyquist = p5s.audiocontext.sampleRate/2;
-  var lowIndex = Math.round(lowFreq/nyquist * freqDomain.length);
-  var highIndex = Math.round(highFreq/nyquist * freqDomain.length);
-
-  var total = 0;
-  var numFrequencies = 0;
-  // add up all of the values for the frequencies
-  for (var i = lowIndex; i<=highIndex; i++) {
-    total += freqDomain[i];
-    numFrequencies += 1;
-  }
-  // divide by total number of frequencies
-  var toReturn = total/numFrequencies;
-  return toReturn;
 }
