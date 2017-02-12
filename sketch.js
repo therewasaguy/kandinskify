@@ -32,10 +32,6 @@ function preload() {
 }
 
 function setup() {
-  // sound setup
-  soundFile.play();
-  soundFile.rate(1);
-
   amplitude = new p5.Amplitude();
   fft = new p5.FFT();
 
@@ -44,14 +40,20 @@ function setup() {
   background(249,243,207);
   rectMode(CENTER);
   ellipseMode(CENTER);
+  textAlign(CENTER);
+  textSize(36);
 
   // start us off with a shape.
   circles.push(new anEllipse([0,100,100], width/2,height/2,100));
-
 }
 
 
 function draw() {
+  colorMode(RGB);
+  background(249,243,207);
+  colorMode(HSB, 100);
+  noStroke();
+
   // calculate angles / spiral position
   var deltaAngle = speed/radius;
   angle += deltaAngle;
@@ -59,11 +61,6 @@ function draw() {
 
   //update & draw the shapes.
   if (soundFile.isPlaying()) {
-    colorMode(RGB);
-    background(249,243,207);
-    colorMode(HSB, 100);
-    noStroke();
-
     // get volume from the amplitude process
     volume = amplitude.getLevel();
 
@@ -90,11 +87,23 @@ function draw() {
     size = map(volume,0,1,5,30);
 
     updateAllShapes();
+  } else {
+    // is paused
+    background(0,0,0,10);
+    text('Click to play', width/2, height/2);
+    return;
   }
-
 
   lastVol = volume;
   lastHigh = high;
+}
+
+function mouseClicked() {
+  if (soundFile.isPlaying()) {
+    soundFile.pause();
+  } else {
+    soundFile.play();
+  }
 }
 
 ///////////////// SHAPES //////////////////////////
